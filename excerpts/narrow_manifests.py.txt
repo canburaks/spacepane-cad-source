@@ -1,0 +1,33 @@
+# The build-manifest changes applied to the unpacked archive
+# Excerpt of script/build_cad_worker.py; the complete script is script/build_cad_worker.py.
+
+def narrow_manifests(source):
+    # Build-manifest changes only: no upstream parser implementation is changed.
+    # OCCT 7.9.3's shape processor and reader parameters include this header-only
+    # value type from DE. Export it through the existing TKXSBase toolkit without
+    # enabling TKDE's providers, registry or configuration implementations.
+    packages = source / "src" / "TKXSBase" / "PACKAGES"
+    selected = packages.read_text().splitlines()
+    if "DE" not in selected:
+        packages.write_text("\n".join(selected + ["DE"]) + "\n")
+    (source / "src" / "DE" / "FILES").write_text("DE_ShapeFixParameters.hxx\n")
+    for toolkit, omitted, parameters in (
+        ("TKDESTEP", "STEPCAFControl", "DESTEP"),
+        ("TKDEIGES", "IGESCAFControl", "DEIGES"),
+    ):
+        packages = source / "src" / toolkit / "PACKAGES"
+        packages.write_text("\n".join(p for p in packages.read_text().splitlines()
+                                      if p != omitted) + "\n")
+        (source / "src" / parameters / "FILES").write_text(
+            parameters + "_Parameters.hxx\n" + parameters + "_Parameters.cxx\n")
+        deps = source / "src" / toolkit / "EXTERNLIB"
+        deps.write_text("\n".join(d for d in deps.read_text().splitlines()
+                                  if d not in {"TKCAF", "TKCDF", "TKLCAF", "TKXCAF", "TKDE"}) + "\n")
+    (source / "PREV_BUILD_MANIFEST_CHANGES.txt").write_text(
+        "2026-10-04: Prev build omits STEPCAFControl/IGESCAFControl, DE provider and "
+        "configuration code, and their unused CAF/XCAF/TKDE dependencies. Only "
+        "DESTEP_Parameters/DEIGES_Parameters remain. "
+        "2026-10-07: TKXSBase additionally exports DE/DE_ShapeFixParameters.hxx; "
+        "DE/FILES contains only this header-only value type. No TKDE library is added. "
+        "No source implementation changes. "
+        "The unmodified source is the SHA256-pinned archive beside this directory.\n")

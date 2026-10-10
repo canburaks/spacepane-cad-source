@@ -1,0 +1,30 @@
+This product makes use of facilities provided by Open CASCADE Technology
+(OCCT), copyright OPEN CASCADE SAS and its contributors. This development build
+uses OCCT 7.9.3, official commit a016080bf6738d6aeae020badee4e888ad1540a5.
+
+OCCT is licensed under GNU LGPL version 2.1 with the Open CASCADE exception
+(version 1.0). LICENSE_LGPL_21.txt and OCCT_LGPL_EXCEPTION.txt are the unmodified
+upstream license and exception. The exception concerns library header material;
+it does not eliminate library distribution or relinking obligations.
+
+The compiled STEP parser includes the GNU Bison 3.7.4 skeleton under GPL-3.0-or-
+later with its special parser-output exception (BISON_NOTICE.txt and
+LICENSE_GPL_3.txt). It also uses the FlexLexer header's retained University of
+California notice (FLEX_NOTICE.txt). No flex or Bison executable is bundled.
+
+Unmodified source archive:
+https://codeload.github.com/Open-Cascade-SAS/OCCT/tar.gz/a016080bf6738d6aeae020badee4e888ad1540a5
+SHA256: c533f2667b59921bd6bd40ce82e7b9900b0289ccc731af5fdeeba097de80ef0f
+
+2026-10-04 build-manifest modifications: omit STEPCAFControl/IGESCAFControl,
+DE provider/configuration implementations (retain parameter value types), and
+their unused CAF/XCAF/TKDE dependencies. No upstream parser implementation is
+modified. The precise transformations and reproduction command are in
+script/build_cad_worker.py and docs/dependencies/occt.md.
+
+This repository preserves the pinned source archive, native worker source,
+build scripts and native object files locally under .build/cad for development
+reproduction. Distribution requires providing the complete corresponding OCCT
+source, modification/build scripts and the applicable relinking materials (or
+an independently reviewed licensing route). Release/App Store licensing and
+distribution approval remain separate, unresolved gates.

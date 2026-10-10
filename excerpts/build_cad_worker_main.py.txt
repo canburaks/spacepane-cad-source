@@ -1,0 +1,60 @@
+# The configure and build steps
+# Excerpt of script/build_cad_worker.py; the complete script is script/build_cad_worker.py.
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--architecture", choices=("arm64", "x86_64"),
+                        default="arm64" if platform.machine() == "arm64" else "x86_64")
+    parser.add_argument("--jobs", type=int, default=min(10, os.cpu_count() or 2))
+    parser.add_argument("--test", action="store_true", help="Run synthetic worker integration checks")
+    parser.add_argument("--refresh-bundle-filelists", action="store_true",
+                        help="Refresh Xcode input/output lists without downloading or rebuilding OCCT")
+    args = parser.parse_args()
+    workspace = ROOT / ".build" / "cad"
+    workspace.mkdir(parents=True, exist_ok=True)
+    if args.refresh_bundle_filelists:
+        refresh_bundle_filelists(workspace)
+        return
+    cmake = shutil.which("cmake") or "/opt/homebrew/bin/cmake"
+    if not Path(cmake).is_file():
+        raise SystemExit("CMake is required; no system package is installed by this script.")
+    archive = workspace / ("occt-" + REVISION + ".tar.gz")
+    if not archive.exists():
+        temporary = archive.with_suffix(".download")
+        urllib.request.urlretrieve(ARCHIVE_URL, temporary)
+        temporary.rename(archive)
+    if hashlib.sha256(archive.read_bytes()).hexdigest() != ARCHIVE_SHA256:
+        raise SystemExit("OCCT archive checksum mismatch; refusing to build.")
+    source = workspace / ("OCCT-" + REVISION)
+    if not extracted_tree_is_current(source):
+        extract_pinned_source(archive, workspace, source)
+    narrow_manifests(source)
+    kernel = workspace / ("kernel-" + args.architecture)
+    log = workspace / ("build-" + args.architecture + ".log")
+    configure = [cmake, "-S", str(source), "-B", str(kernel), "-G", "Unix Makefiles",
+                 "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0",
+                 "-DCMAKE_OSX_ARCHITECTURES=" + args.architecture,
+                 "-DCMAKE_CXX_FLAGS=-fapplication-extension", "-DCMAKE_C_FLAGS=-fapplication-extension",
+                 "-DBUILD_LIBRARY_TYPE=Static", "-DBUILD_RELEASE_DISABLE_EXCEPTIONS=OFF",
+                 "-DBUILD_ADDITIONAL_TOOLKITS=TKDESTEP TKDEIGES TKMesh", "-DUSE_MMGR_TYPE=NATIVE"]
+    for module in ("FoundationClasses", "ModelingData", "ModelingAlgorithms", "Visualization",
+                   "ApplicationFramework", "DataExchange", "DETools", "Draw"):
+        configure.append("-DBUILD_MODULE_" + module + "=OFF")
+    for optional in ("TK", "FREETYPE", "FREEIMAGE", "FFMPEG", "OPENVR", "RAPIDJSON", "DRACO",
+                     "TBB", "EIGEN", "XLIB", "OPENGL", "GLES2"):
+        configure.append("-DUSE_" + optional + "=OFF")
+    print("Building pinned OCCT shape readers and mesh kernel (" + args.architecture + ")", flush=True)
+    run(configure, log)
+    run([cmake, "--build", str(kernel), "--parallel", str(max(1, args.jobs))], log)
+    worker = workspace / ("worker-" + args.architecture)
+    run([cmake, "-S", str(ROOT / "Native" / "CADWorker"), "-B", str(worker),
+         "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0",
+         "-DCMAKE_OSX_ARCHITECTURES=" + args.architecture, "-DOCCT_BUILD=" + str(kernel)], log)
+    run([cmake, "--build", str(worker), "--parallel", str(max(1, args.jobs))], log)
+    # Universal builds prepare both architectures before embedding.
+    refresh_bundle_filelists(workspace)
+    print(worker / "CADWorker")
+    if args.test:
+        subprocess.run([os.sys.executable, str(ROOT / "Native/CADWorker/Tests/test_worker.py"),
+                        "--worker", str(worker / "CADWorker"), "--generator",
+                        str(worker / "CADFixtureGenerator")], check=True)
