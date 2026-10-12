@@ -35,5 +35,10 @@ with tempfile.TemporaryDirectory(prefix='cad-sign-', dir=os.environ['TARGET_TEMP
                         '--options', 'runtime', '--timestamp=none',
                         '--entitlements', str(root / 'Configuration/CADWorker.entitlements'), str(staged)], check=True)
     shutil.copy2(staged, destination)
-notices = Path(os.environ['TARGET_BUILD_DIR']) / os.environ['UNLOCALIZED_RESOURCES_FOLDER_PATH'] / 'OCCT-Notices'
-shutil.copytree(root / 'ThirdPartyNotices/OCCT', notices, dirs_exist_ok=True)
+resources = Path(os.environ['TARGET_BUILD_DIR']) / os.environ['UNLOCALIZED_RESOURCES_FOLDER_PATH']
+# (folder under ThirdPartyNotices, folder inside Resources). build_cad_worker.NOTICE_FOLDERS owns these pairs and
+# declares every file below in the phase's file lists; this script cannot import it under the user-script sandbox,
+# and test_build_cad_worker.py runs this script against those lists. Every target that runs the phase carries the
+# notices: the app shows them from About, and the CAD service ships beside the library they cover.
+for source, name in (('OCCT', 'OCCT-Notices'), ('ColorSchemes', 'ColorSchemes-Notices')):
+    shutil.copytree(root / 'ThirdPartyNotices' / source, resources / name, dirs_exist_ok=True)

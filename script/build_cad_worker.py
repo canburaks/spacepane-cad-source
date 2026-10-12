@@ -17,6 +17,12 @@ ARCHIVE_URL = "https://codeload.github.com/Open-Cascade-SAS/OCCT/tar.gz/" + REVI
 ROOT = Path(__file__).resolve().parents[1]
 # Written into an extracted tree last. A tree without it, or with another value, is never reused.
 EXTRACTION_MARKER = ".prev-occt-extracted"
+# License-notice folders the app carries: (folder under ThirdPartyNotices, folder name inside Contents/Resources).
+# script/embed_cad_worker.py copies these pairs into each Xcode target that runs it (it cannot import this module
+# under the script sandbox, so it spells them out) and script/stage_companion.py copies them into the prototype;
+# the About page opens the folders by these names (Apps/PrevApp/Models/BundledNotices.swift). test_build_cad_worker.py
+# runs the embed script and fails when any of these places disagree.
+NOTICE_FOLDERS = (("OCCT", "OCCT-Notices"), ("ColorSchemes", "ColorSchemes-Notices"))
 
 
 def run(arguments, log):
@@ -128,14 +134,21 @@ def refresh_bundle_filelists(workspace):
     # The same lists expand in each owning target: app or CADImportService.xpc.
     prepared = [workspace / ("worker-" + architecture) / "CADWorker"
                 for architecture in ("arm64", "x86_64")]
-    notices = sorted(path for path in (ROOT / "ThirdPartyNotices/OCCT").iterdir() if path.is_file())
+    # The published CAD source bundle holds only the OCCT notices, and a recipient's relink ends here, so a missing
+    # folder lists nothing instead of failing; the embed script still refuses to copy a folder that is not there.
+    notices = {name: sorted(path for path in (ROOT / "ThirdPartyNotices" / source).iterdir() if path.is_file())
+               if (ROOT / "ThirdPartyNotices" / source).is_dir() else []
+               for source, name in NOTICE_FOLDERS}
+    notice_files = [path for files in notices.values() for path in files]
     (workspace / "bundle-inputs.xcfilelist").write_text(
-        "\n".join(str(path) for path in prepared + notices if path.is_file()) + "\n")
+        "\n".join(str(path) for path in prepared + notice_files if path.is_file()) + "\n")
     helper = "$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Helpers"
-    resources = "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/OCCT-Notices"
-    (workspace / "bundle-outputs.xcfilelist").write_text(
-        "\n".join([helper, helper + "/CADWorker", resources] +
-                  [resources + "/" + path.name for path in notices]) + "\n")
+    resources = "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)"
+    outputs = [helper, helper + "/CADWorker"]
+    for name, files in notices.items():
+        if files:
+            outputs += [resources + "/" + name] + [resources + "/" + name + "/" + path.name for path in files]
+    (workspace / "bundle-outputs.xcfilelist").write_text("\n".join(outputs) + "\n")
 
 
 def main():

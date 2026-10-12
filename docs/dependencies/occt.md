@@ -116,11 +116,11 @@ repository.
   bundle committed as-is and tagged per release. Its release tarball is built with
   `--tarball` and `--include-archive` so it also carries the pinned archive, which is not
   committed. `--check <directory>` verifies a mirror in place.
-- The app's About text names the license and says notices are included. It does not yet
-  give the offer's location, and the website and store description do not mention it.
-- Open: a legal review of the questions in the offer, publication of the repository and its
-  first tagged release, and refreshing the mirror whenever the helper, the scripts, the
-  notices or the pin change. The Mac App Store route and the Open CASCADE commercial
+- The app's About page shows OPEN CASCADE SAS's copyright line and links to the repository
+  (`PREV_OPEN_SOURCE_URL`), the website has an `/open-source` page and the store description
+  carries the same pointer (`docs/release/app-store-submission.md`).
+- Open: a legal review of the questions in the offer, and refreshing the mirror and its
+  tagged release whenever the helper, the scripts, the notices or the pin change. The Mac App Store route and the Open CASCADE commercial
   exceptions are separate questions; this route does not depend on a purchased license.
 
 ## Import, file access and privacy boundary
