@@ -1,6 +1,8 @@
 This product makes use of facilities provided by Open CASCADE Technology
-(OCCT), copyright OPEN CASCADE SAS and its contributors. This development build
-uses OCCT 7.9.3, official commit a016080bf6738d6aeae020badee4e888ad1540a5.
+(OCCT), copyright OPEN CASCADE SAS and its contributors. It uses OCCT 7.9.3,
+official commit a016080bf6738d6aeae020badee4e888ad1540a5, in one place: CADWorker,
+the separate helper executable that imports STEP and IGES files and links the
+library statically. The app and its Quick Look extensions do not link OCCT.
 
 OCCT is licensed under GNU LGPL version 2.1 with the Open CASCADE exception
 (version 1.0). LICENSE_LGPL_21.txt and OCCT_LGPL_EXCEPTION.txt are the unmodified
@@ -22,9 +24,9 @@ their unused CAF/XCAF/TKDE dependencies. No upstream parser implementation is
 modified. The precise transformations and reproduction command are in
 script/build_cad_worker.py and docs/dependencies/occt.md.
 
-This repository preserves the pinned source archive, native worker source,
-build scripts and native object files locally under .build/cad for development
-reproduction. Distribution requires providing the complete corresponding OCCT
-source, modification/build scripts and the applicable relinking materials (or
-an independently reviewed licensing route). Release/App Store licensing and
-distribution approval remain separate, unresolved gates.
+Source and relinking materials: the complete corresponding source of OCCT as
+used (the unmodified archive above and the build-manifest modifications), the
+helper's own source, and the scripts that build and relink the helper are
+published, with a written offer for the same materials, at
+https://github.com/canburaks/spacepane-cad-source
+Requests may also be sent to info@spacepane.com.
